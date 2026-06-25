@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 Password Leak Checker</title>
+    <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>" type="image/svg+xml">
+    
+    <style>
+        /* ============================================
+           RESET & BASE STYLES
+           ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #0a0e1a 0%, #1a1f3a 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* ============================================
+           NAVIGATION
+           ============================================ */
+        .navbar {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .brand-icon {
+            font-size: 1.8rem;
+        }
+
+        .brand-text {
+            background: linear-gradient(45deg, #00ff87, #60efff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-links a {
+            color: #aaa;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #00ff87;
+        }
+
+        /* ============================================
+           HERO SECTION
+           ============================================ */
+        .hero {
+            text-align: center;
+            padding: 3rem 0 2rem 0;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #00ff87, #60efff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #aaa;
+            margin-bottom: 1.5rem;
+        }
+
+        .privacy-badge {
+            display: inline-block;
+            background: rgba(0, 255, 135, 0.1);
+            border: 1px solid rgba(0, 255, 135, 0.2);
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        .privacy-badge .badge-icon {
+            margin-right: 8px;
+        }
+
+        .privacy-badge strong {
+            color: #00ff87;
+        }
+
+        /* ============================================
+           CARDS
+           ============================================ */
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        /* ============================================
+           TABS
+           ============================================ */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: #888;
+            padding: 0.7rem 1.5rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+        }
+
+        .tab-btn.active {
+            background: rgba(0, 255, 135, 0.15);
+            color: #00ff87;
+            border: 1px solid rgba(0, 255, 135, 0.2);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ============================================
+           INPUTS
+           ============================================ */
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #ccc;
+        }
+
+        .password-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-input {
+            flex: 1;
+            padding: 0.8rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 1rem;
+            transition: all 0.3s;
+            padding-right: 3rem;
+        }
+
+        .password-input:focus {
+            outline: none;
+            border-color: #00ff87;
+            box-shadow: 0 0 20px rgba(0, 255, 135, 0.1);
+        }
+
+        .password-input::placeholder {
+            color: #555;
+        }
+
+        .toggle-visibility {
+            position: absolute;
+            right: 10px;
+            background: transparent;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 5px;
+            transition: color 0.3s;
+        }
+
+        .toggle-visibility:hover {
+            color: #fff;
+        }
+
+        .textarea-input {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 0.95rem;
+            font-family: inherit;
+            resize: vertical;
+            transition: all 0.3s;
+        }
+
+        .textarea-input:focus {
+            outline: none;
+            border-color: #00ff87;
+            box-shadow: 0 0 20px rgba(0, 255, 135, 0.1);
+        }
+
+        .textarea-input::placeholder {
+            color: #555;
+        }
+
+        /* File Upload */
+        .file-upload-wrapper {
+            position: relative;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 0.1px;
+            height: 0.1px;
+        }
+
+        .file-label {
+            display: inline-block;
+            padding: 0.8rem 2rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: #aaa;
+            width: 100%;
+            text-align: center;
+        }
+
+        .file-label:hover {
+            border-color: #00ff87;
+            color: #fff;
+        }
+
+        .file-info {
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background: rgba(0, 255, 135, 0.05);
+            border-radius: 8px;
+            color: #00ff87;
+        }
+
+        /* ============================================
+           STRENGTH METER
+           ============================================ */
+        .strength-meter {
+            margin-top: 0.8rem;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .strength-bar {
+            height: 100%;
+            width: 0%;
+            border-radius: 10px;
+            transition: width 0.3s ease, background 0.3s ease;
+        }
+
+        .strength-label {
+            margin-top: 0.3rem;
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        /* ============================================
+           BUTTONS
+           ============================================ */
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 1rem;
+        }
+
+        .btn-primary {
+            padding: 0.8rem 2rem;
+            background: linear-gradient(135deg, #00ff87, #60efff);
+            border: none;
+            border-radius: 10px;
+            color: #0a0e1a;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 255, 135, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            padding: 0.8rem 2rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #aaa;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .full-width {
+            width: 100%;
+        }
+
+        .btn-small {
+            padding: 0.4rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+
+        .btn-small:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* ============================================
+           RESULTS
+           ============================================ */
+        .result-container {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            border-radius: 15px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .result-safe {
+            background: linear-gradient(135deg, rgba(0, 176, 155, 0.2), rgba(150, 201, 61, 0.2));
+            border: 1px solid rgba(0, 176, 155, 0.3);
+        }
+
+        .result-leaked {
+            background: linear-gradient(135deg, rgba(240, 147, 251, 0.2), rgba(245, 87, 108, 0.2));
+            border: 1px solid rgba(245, 87, 108, 0.3);
+        }
+
+        .result-error {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid rgba(255, 0, 0, 0.2);
+        }
+
+        .result-icon {
+            font-size: 3rem;
+            text-align: center;
+            display: block;
+        }
+
+        .result-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin: 0.5rem 0;
+        }
+
+        .result-safe .result-title {
+            color: #00ff87;
+        }
+
+        .result-leaked .result-title {
+            color: #f5576c;
+        }
+
+        .result-details {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            font-size: 0.9rem;
+        }
+
+        .result-details code {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .result-tips {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-left: 3px solid #f5576c;
+            background: rgba(245, 87, 108, 0.05);
+            border-radius: 8px;
+        }
+
+        .result-tips ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .result-tips li {
+            padding: 0.3rem 0;
+        }
+
+        /* Multiple Results Table */
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .result-table th,
+        .result-table td {
+            padding: 0.7rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .result-table th {
+            color: #888;
+            font-weight: 500;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .result-table tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-leaked {
+            background: rgba(245, 87, 108, 0.2);
+            color: #f5576c;
+        }
+
+        .status-safe {
+            background: rgba(0, 255, 135, 0.2);
+            color: #00ff87;
+        }
+
+        .status-error {
+            background: rgba(255, 255, 0, 0.1);
+            color: #ffd93d;
+        }
+
+        /* ============================================
+           HOW IT WORKS
+           ============================================ */
+        .how-it-works {
+            padding: 2rem 0;
+        }
+
+        .how-it-works h2 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .step {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 1.5rem;
+            position: relative;
+        }
+
+        .step-number {
+            position: absolute;
+            top: -15px;
+            left: 20px;
+            background: linear-gradient(135deg, #00ff87, #60efff);
+            color: #0a0e1a;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        .step-content h3 {
+            margin: 0.5rem 0 0.5rem 0;
+            color: #00ff87;
+        }
+
+        .step-content code {
+            display: block;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.5rem;
+            border-radius: 6px;
+            margin: 0.5rem 0;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .step-content .highlight {
+            color: #00ff87;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        /* ============================================
+           STATS
+           ============================================ */
+        .stats-section {
+            padding: 2rem 0;
+        }
+
+        .stats-section h2 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #00ff87, #60efff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-label {
+            color: #888;
+            margin-top: 0.3rem;
+            font-size: 0.9rem;
+        }
+
+        /* ============================================
+           GENERATOR
+           ============================================ */
+        .generator-section {
+            padding: 2rem 0;
+        }
+
+        .generator-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .generator-input-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .generator-input-group input[type="range"] {
+            flex: 1;
+            accent-color: #00ff87;
+            background: transparent;
+        }
+
+        .generator-input-group span {
+            color: #00ff87;
+            font-weight: 600;
+            min-width: 30px;
+        }
+
+        .generated-password {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(0, 255, 135, 0.05);
+            border: 1px solid rgba(0, 255, 135, 0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .generated-password code {
+            font-size: 1.1rem;
+            color: #00ff87;
+            word-break: break-all;
+            flex: 1;
+        }
+
+        /* ============================================
+           LOADING OVERLAY
+           ============================================ */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 14, 26, 0.9);
+            backdrop-filter: blur(5px);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #00ff87;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-overlay p {
+            margin-top: 1.5rem;
+            color: #aaa;
+        }
+
+        /* ============================================
+           FOOTER
+           ============================================ */
+        .footer {
+            padding: 2rem 0;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            margin-top: 2rem;
+        }
+
+        .footer a {
+            color: #00ff87;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .footer-privacy {
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #555;
+        }
+
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .tab-btn {
+                width: 100%;
+                text-align: center;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .steps {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .generator-controls {
+                flex-direction: column;
+            }
+
+            .generator-input-group {
+                width: 100%;
+            }
+
+            .generated-password {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .navbar .container {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .result-table {
+                font-size: 0.8rem;
+            }
+
+            .result-table th,
+            .result-table td {
+                padding: 0.4rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card {
+                padding: 1rem;
+            }
+
+            .hero h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ============================================
+    NAVIGATION
+    ============================================ -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <span class="brand-icon">🔐</span>
+                <span class="brand-text">Leak Checker</span>
+            </div>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="https://haveibeenpwned.com" target="_blank">About</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ============================================
+    MAIN CONTENT
+    ============================================ -->
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>🔐 Password Leak Checker</h1>
+            <p class="subtitle">Instantly check if your password has been exposed in any data breach</p>
+            <div class="privacy-badge">
+                <span class="badge-icon">🛡️</span>
+                <span>Your password is <strong>never</strong> sent over the internet</span>
+            </div>
+        </section>
+
+        <!-- Main Card -->
+        <div class="card">
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="single">🔑 Single Password</button>
+                <button class="tab-btn" data-tab="multiple">📝 Multiple Passwords</button>
+                <button class="tab-btn" data-tab="file">📂 File Upload</button>
+            </div>
+
+            <!-- Tab Content: Single Password -->
+            <div class="tab-content active" id="single">
+                <div class="input-group">
+                    <label for="password">Enter your password to check:</label>
+                    <div class="password-input-wrapper">
+                        <input 
+                            type="password" 
+                            id="password" 
+                            class="password-input" 
+                            placeholder="Type your password here..."
+                            autocomplete="off"
+                        >
+                        <button class="toggle-visibility" id="toggleVisibility" type="button">
+                            👁️
+                        </button>
+                    </div>
+                    <div id="strengthMeter" class="strength-meter">
+                        <div class="strength-bar" id="strengthBar"></div>
+                    </div>
+                    <div class="strength-label" id="strengthLabel">Enter a password to check strength</div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-primary" id="checkBtn">🔍 Check Password</button>
+                    <button class="btn-secondary" id="clearBtn">🗑️ Clear</button>
+                </div>
+
+                <!-- Results -->
+                <div id="resultContainer" class="result-container" style="display: none;">
+                    <div id="resultContent"></div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Multiple Passwords -->
+            <div class="tab-content" id="multiple">
+                <div class="input-group">
+                    <label for="multiPasswords">Enter multiple passwords (one per line):</label>
+                    <textarea 
+                        id="multiPasswords" 
+                        class="textarea-input" 
+                        placeholder="password123&#10;admin123&#10;MySecureP@ss" 
+                        rows="6"
+                    ></textarea>
+                </div>
+                <button class="btn-primary full-width" id="checkMultiBtn">🔍 Check All Passwords</button>
+                <div id="multiResultContainer" class="result-container" style="display: none;"></div>
+            </div>
+
+            <!-- Tab Content: File Upload -->
+            <div class="tab-content" id="file">
+                <div class="input-group">
+                    <label for="fileUpload">Upload a text file with passwords:</label>
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="fileUpload" accept=".txt" class="file-input">
+                        <label for="fileUpload" class="file-label">📁 Choose a .txt file</label>
+                    </div>
+                    <div id="fileInfo" class="file-info" style="display: none;"></div>
+                </div>
+                <button class="btn-primary full-width" id="checkFileBtn">🔍 Check File Passwords</button>
+                <div id="fileResultContainer" class="result-container" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- How It Works Section -->
+        <section class="how-it-works" id="features">
+            <h2>🔒 How It Works Securely</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Hash It</h3>
+                        <p>Your password is converted to a SHA-1 hash locally in your browser</p>
+                        <code>password123 → 40BD001563085FC35165329EA1D</code>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>Split It</h3>
+                        <p>Only the first 5 characters are sent to the API</p>
+                        <code>Send: 40BD0</code>
+                        <code style="color: #888;">Keep: 01563085FC...</code>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>Check It</h3>
+                        <p>The API returns ALL hashes starting with "40BD0"</p>
+                        <p>We check if YOUR hash is in the list locally</p>
+                        <p class="highlight">✅ Your password never leaves your device!</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats -->
+        <section class="stats-section">
+            <h2>📊 Your Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalChecks">0</div>
+                    <div class="stat-label">Total Checks</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="leakedFound">0</div>
+                    <div class="stat-label">🔴 Leaked Found</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="safeFound">0</div>
+                    <div class="stat-label">🟢 Safe Passwords</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="leakRate">0%</div>
+                    <div class="stat-label">Leak Rate</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Password Generator -->
+        <section class="generator-section">
+            <div class="card">
+                <h3>🎲 Password Generator</h3>
+                <div class="generator-controls">
+                    <div class="generator-input-group">
+                        <label for="pwLength">Length:</label>
+                        <input type="range" id="pwLength" min="8" max="32" value="16">
+                        <span id="pwLengthDisplay">16</span>
+                    </div>
+                    <button class="btn-primary" id="generateBtn">Generate Strong Password</button>
+                </div>
+                <div id="generatedPassword" class="generated-password" style="display: none;">
+                    <code id="newPassword"></code>
+                    <button id="copyBtn" class="btn-small">📋 Copy</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>
+                🔐 Powered by <a href="https://haveibeenpwned.com/API/v3" target="_blank">Have I Been Pwned API</a>
+                • Built with pure HTML/CSS/JS
+            </p>
+            <p class="footer-privacy">
+                Your privacy is protected: Passwords are hashed locally and never transmitted
+            </p>
+        </footer>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>🔍 Checking against billions of leaked passwords...</p>
+    </div>
+
+    <!-- ============================================
+    JAVASCRIPT
+    ============================================ -->
+    <script>
+        // ============================================
+        // STATE MANAGEMENT
+        // ============================================
+        const state = {
+            totalChecks: 0,
+            leakedFound: 0,
+            safeFound: 0,
+            currentTab: 'single',
+            isChecking: false
+        };
+
+        // ============================================
+        // DOM ELEMENTS
+        // ============================================
+        const elements = {
+            password: document.getElementById('password'),
+            toggleVisibility: document.getElementById('toggleVisibility'),
+            strengthBar: document.getElementById('strengthBar'),
+            strengthLabel: document.getElementById('strengthLabel'),
+            checkBtn: document.getElementById('checkBtn'),
+            clearBtn: document.getElementById('clearBtn'),
+            resultContainer: document.getElementById('resultContainer'),
+            resultContent: document.getElementById('resultContent'),
+            multiPasswords: document.getElementById('multiPasswords'),
+            checkMultiBtn: document.getElementById('checkMultiBtn'),
+            multiResultContainer: document.getElementById('multiResultContainer'),
+            fileUpload: document.getElementById('fileUpload'),
+            fileInfo: document.getElementById('fileInfo'),
+            checkFileBtn: document.getElementById('checkFileBtn'),
+            fileResultContainer: document.getElementById('fileResultContainer'),
+            totalChecks: document.getElementById('totalChecks'),
+            leakedFound: document.getElementById('leakedFound'),
+            safeFound: document.getElementById('safeFound'),
+            leakRate: document.getElementById('leakRate'),
+            pwLength: document.getElementById('pwLength'),
+            pwLengthDisplay: document.getElementById('pwLengthDisplay'),
+            generateBtn: document.getElementById('generateBtn'),
+            generatedPassword: document.getElementById('generatedPassword'),
+            newPassword: document.getElementById('newPassword'),
+            copyBtn: document.getElementById('copyBtn'),
+            loadingOverlay: document.getElementById('loadingOverlay'),
+            tabBtns: document.querySelectorAll('.tab-btn'),
+            tabContents: document.querySelectorAll('.tab-content')
+        };
+
+        // ============================================
+        // TAB HANDLING
+        // ============================================
+        elements.tabBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const tab = this.dataset.tab;
+                
+                elements.tabBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                elements.tabContents.forEach(c => c.classList.remove('active'));
+                document.getElementById(tab).classList.add('active');
+                
+                state.currentTab = tab;
+            });
+        });
+
+        // ============================================
+        // PASSWORD VISIBILITY TOGGLE
+        // ============================================
+        let isPasswordVisible = false;
+
+        elements.toggleVisibility.addEventListener('click', function() {
+            isPasswordVisible = !isPasswordVisible;
+            elements.password.type = isPasswordVisible ? 'text' : 'password';
+            this.textContent = isPasswordVisible ? '🙈' : '👁️';
+        });
+
+        // ============================================
+        // PASSWORD STRENGTH METER
+        // ============================================
+        elements.password.addEventListener('input', function() {
+            const password = this.value;
+            if (password.length === 0) {
+                elements.strengthBar.style.width = '0%';
+                elements.strengthLabel.textContent = 'Enter a password to check strength';
+                elements.strengthLabel.style.color = '#888';
+                return;
+            }
+            
+            const strength = calculateStrength(password);
+            const { width, color, label } = getStrengthInfo(strength);
+            
+            elements.strengthBar.style.width = width;
+            elements.strengthBar.style.background = color;
+            elements.strengthLabel.textContent = `${label} (${strength}%)`;
+            elements.strengthLabel.style.color = color;
+        });
+
+        function calculateStrength(password) {
+            let score = 0;
+            
+            if (password.length >= 8) score += 25;
+            if (password.length >= 12) score += 15;
+            if (password.length >= 16) score += 10;
+            
+            if (/[A-Z]/.test(password)) score += 10;
+            if (/[a-z]/.test(password)) score += 10;
+            if (/[0-9]/.test(password)) score += 10;
+            if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(password)) score += 20;
+            
+            return Math.min(score, 100);
+        }
+
+        function getStrengthInfo(score) {
+            if (score >= 80) {
+                return { width: `${score}%`, color: '#00ff87', label: '💪 Strong' };
+            } else if (score >= 60) {
+                return { width: `${score}%`, color: '#60efff', label: '👍 Good' };
+            } else if (score >= 40) {
+                return { width: `${score}%`, color: '#ffd93d', label: '⚠️ Fair' };
+            } else {
+                return { width: `${score}%`, color: '#f5576c', label: '🔴 Weak' };
+            }
+        }
+
+        // ============================================
+        // SHA-1 HASHING (Browser Native)
+        // ============================================
+        async function sha1(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-1', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+        }
+
+        // ============================================
+        // CHECK PASSWORD AGAINST HIBP API
+        // ============================================
+        async function checkPasswordLeak(password) {
+            try {
+                const fullHash = await sha1(password);
+                const prefix = fullHash.substring(0, 5);
+                const suffix = fullHash.substring(5);
+                
+                const url = `https://api.pwnedpasswords.com/range/${prefix}`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status}`);
+                }
+                
+                const data = await response.text();
+                const lines = data.split('\n');
+                
+                for (const line of lines) {
+                    if (line.trim() === '') continue;
+                    const [hash, count] = line.split(':');
+                    if (hash === suffix) {
+                        return { leaked: true, count: parseInt(count), prefix, suffix };
+                    }
+                }
+                
+                return { leaked: false, count: 0, prefix, suffix };
+                
+            } catch (error) {
+                console.error('Error checking password:', error);
+                throw error;
+            }
+        }
+
+        // ============================================
+        // SINGLE PASSWORD CHECK
+        // ============================================
+        elements.checkBtn.addEventListener('click', async function() {
+            const password = elements.password.value.trim();
+            
+            if (!password) {
+                showResult('error', '⚠️ Please enter a password to check!', 'single');
+                return;
+            }
+            
+            await performCheck(password, 'single');
+        });
+
+        elements.password.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                elements.checkBtn.click();
+            }
+        });
+
+        elements.clearBtn.addEventListener('click', function() {
+            elements.password.value = '';
+            elements.resultContainer.style.display = 'none';
+            elements.strengthBar.style.width = '0%';
+            elements.strengthLabel.textContent = 'Enter a password to check strength';
+            elements.strengthLabel.style.color = '#888';
+        });
+
+        // ============================================
+        // MULTIPLE PASSWORDS CHECK
+        // ============================================
+        elements.checkMultiBtn.addEventListener('click', async function() {
+            const text = elements.multiPasswords.value.trim();
+            if (!text) {
+                showResult('error', '⚠️ Please enter at least one password!', 'multi');
+                return;
+            }
+            
+            const passwords = text.split('\n').map(p => p.trim()).filter(p => p.length > 0);
+            
+            if (passwords.length === 0) {
+                showResult('error', '⚠️ Please enter at least one valid password!', 'multi');
+                return;
+            }
+            
+            await performBatchCheck(passwords, 'multi');
+        });
+
+        // ============================================
+        // FILE UPLOAD HANDLING
+        // ============================================
+        elements.fileUpload.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const content = e.target.result;
+                    const passwords = content.split('\n').map(p => p.trim()).filter(p => p.length > 0);
+                    elements.fileInfo.style.display = 'block';
+                    elements.fileInfo.innerHTML = `✅ Loaded <strong>${passwords.length}</strong> passwords from <strong>${file.name}</strong>`;
+                    elements.fileInfo.dataset.passwords = JSON.stringify(passwords);
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        elements.checkFileBtn.addEventListener('click', async function() {
+            const info = elements.fileInfo;
+            if (!info.dataset.passwords) {
+                showResult('error', '⚠️ Please upload a file first!', 'file');
+                return;
+            }
+            
+            const passwords = JSON.parse(info.dataset.passwords);
+            await performBatchCheck(passwords, 'file');
+        });
+
+        // ============================================
+        // PERFORM SINGLE CHECK
+        // ============================================
+        async function performCheck(password, type) {
+            if (state.isChecking) return;
+            state.isChecking = true;
+            elements.checkBtn.disabled = true;
+            elements.loadingOverlay.classList.add('active');
+            
+            try {
+                const result = await checkPasswordLeak(password);
+                state.totalChecks++;
+                
+                if (result.leaked) {
+                    state.leakedFound++;
+                    showResult('leaked', password, result.count, type);
+                } else {
+                    state.safeFound++;
+                    showResult('safe', password, 0, type);
+                }
+                
+                updateStats();
+                
+            } catch (error) {
+                showResult('error', error.message, type);
+            } finally {
+                state.isChecking = false;
+                elements.checkBtn.disabled = false;
+                elements.loadingOverlay.classList.remove('active');
+            }
+        }
+
+        // ============================================
+        // PERFORM BATCH CHECK
+        // ============================================
+        async function performBatchCheck(passwords, type) {
+            if (state.isChecking) return;
+            state.isChecking = true;
+            elements.checkMultiBtn.disabled = true;
+            elements.checkFileBtn.disabled = true;
+            elements.loadingOverlay.classList.add('active');
+            
+            const results = [];
+            let leakedCount = 0;
+            let safeCount = 0;
+            const loadingP = document.querySelector('.loading-overlay p');
+            
+            for (let i = 0; i < passwords.length; i++) {
+                const pw = passwords[i];
+                try {
+                    const result = await checkPasswordLeak(pw);
+                    state.totalChecks++;
+                    
+                    if (result.leaked) {
+                        leakedCount++;
+                        state.leakedFound++;
+                        results.push({ password: pw, status: 'LEAKED', count: result.count });
+                    } else {
+                        safeCount++;
+                        state.safeFound++;
+                        results.push({ password: pw, status: 'SAFE', count: 0 });
+                    }
+                    
+                    loadingP.textContent = `🔍 Checking ${i+1}/${passwords.length}... (${Math.round((i+1)/passwords.length * 100)}%)`;
+                    
+                } catch (error) {
+                    results.push({ password: pw, status: 'ERROR', count: 0 });
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+            
+            updateStats();
+            showBatchResults(results, type);
+            
+            state.isChecking = false;
+            elements.checkMultiBtn.disabled = false;
+            elements.checkFileBtn.disabled = false;
+            elements.loadingOverlay.classList.remove('active');
+            loadingP.textContent = '🔍 Checking against billions of leaked passwords...';
+        }
+
+        // ============================================
+        // SHOW SINGLE RESULT
+        // ============================================
+        function showResult(type, data, count = 0, target = 'single') {
+            let container, content;
+            
+            if (target === 'single') {
+                container = elements.resultContainer;
+                content = elements.resultContent;
+            } else if (target === 'multi') {
+                container = elements.multiResultContainer;
+                content = elements.multiResultContainer;
+            } else {
+                container = elements.fileResultContainer;
+                content = elements.fileResultContainer;
+            }
+            
+            container.style.display = 'block';
+            container.className = 'result-container';
+            
+            if (type === 'safe') {
+                container.classList.add('result-safe');
+                content.innerHTML = `
+                    <span class="result-icon">🟢</span>
+                    <div class="result-title">SAFE!</div>
+                    <p style="text-align: center; color: #aaa;">This password hasn't been leaked in any known breaches</p>
+                    <div class="result-details">
+                        <strong>📊 Details:</strong><br>
+                        Password: <code>${data}</code><br>
+                        Status: ✅ Secure
+                    </div>
+                    <div class="result-tips" style="border-left-color: #00ff87;">
+                        <strong>💡 Security Tips:</strong>
+                        <ul>
+                            <li>✅ Use unique passwords for every site</li>
+                            <li>✅ Enable Two-Factor Authentication (2FA)</li>
+                            <li>✅ Use a password manager</li>
+                        </ul>
+                    </div>
+                `;
+            } else if (type === 'leaked') {
+                container.classList.add('result-leaked');
+                content.innerHTML = `
+                    <span class="result-icon">🔴</span>
+                    <div class="result-title">LEAKED!</div>
+                    <p style="text-align: center; color: #aaa;">This password has been found in data breaches!</p>
+                    <div class="result-details">
+                        <strong>📊 Breach Details:</strong><br>
+                        Password: <code>${data}</code><br>
+                        Times Leaked: <strong style="color: #f5576c;">${count.toLocaleString()}</strong> times<br>
+                        Status: ⚠️ CRITICAL - DO NOT USE
+                    </div>
+                    <div class="result-tips">
+                        <strong>🚨 What to do next:</strong>
+                        <ul>
+                            <li>🔄 Change this password on ALL accounts</li>
+                            <li>🔑 Use a UNIQUE password for each website</li>
+                            <li>🛡️ Enable Two-Factor Authentication (2FA)</li>
+                            <li>📝 Use a Password Manager</li>
+                        </ul>
+                    </div>
+                `;
+            } else if (type === 'error') {
+                container.classList.add('result-error');
+                content.innerHTML = `
+                    <span class="result-icon">⚠️</span>
+                    <div class="result-title" style="color: #ffd93d;">Error</div>
+                    <p style="text-align: center; color: #aaa;">${data}</p>
+                `;
+            }
+        }
+
+        // ============================================
+        // SHOW BATCH RESULTS
+        // ============================================
+        function showBatchResults(results, target) {
+            let container;
+            
+            if (target === 'multi') {
+                container = elements.multiResultContainer;
+            } else {
+                container = elements.fileResultContainer;
+            }
+            
+            container.style.display = 'block';
+            container.className = 'result-container';
+            container.style.background = 'rgba(255,255,255,0.03)';
+            container.style.border = '1px solid rgba(255,255,255,0.1)';
+            
+            const leaked = results.filter(r => r.status === 'LEAKED');
+            const safe = results.filter(r => r.status === 'SAFE');
+            const errors = results.filter(r => r.status === 'ERROR');
+            
+            let tableRows = results.map(r => {
+                let statusClass, statusText;
+                if (r.status === 'LEAKED') {
+                    statusClass = 'status-leaked';
+                    statusText = '🔴 LEAKED';
+                } else if (r.status === 'SAFE') {
+                    statusClass = 'status-safe';
+                    statusText = '🟢 SAFE';
+                } else {
+                    statusClass = 'status-error';
+                    statusText = '⚠️ ERROR';
+                }
+                
+                return `
+                    <tr>
+                        <td><code>${escapeHtml(r.password)}</code></td>
+                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                        <td>${r.count > 0 ? r.count.toLocaleString() + '×' : 'N/A'}</td>
+                    </tr>
+                `;
+            }).join('');
+            
+            container.innerHTML = `
+                <h3>📊 Results Summary</h3>
+                <div style="display: flex; gap: 1rem; margin: 1rem 0; flex-wrap: wrap;">
+                    <div style="background: rgba(0,255,135,0.1); padding: 0.5rem 1rem; border-radius: 8px;">
+                        Total: <strong>${results.length}</strong>
+                    </div>
+                    <div style="background: rgba(245,87,108,0.1); padding: 0.5rem 1rem; border-radius: 8px; color: #f5576c;">
+                        Leaked: <strong>${leaked.length}</strong>
+                    </div>
+                    <div style="background: rgba(0,255,135,0.1); padding: 0.5rem 1rem; border-radius: 8px; color: #00ff87;">
+                        Safe: <strong>${safe.length}</strong>
+                    </div>
+                    ${errors.length > 0 ? `
+                        <div style="background: rgba(255,255,0,0.1); padding: 0.5rem 1rem; border-radius: 8px; color: #ffd93d;">
+                            Errors: <strong>${errors.length}</strong>
+                        </div>
+                    ` : ''}
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="result-table">
+                        <thead>
+                            <tr>
+                                <th>Password</th>
+                                <th>Status</th>
+                                <th>Leak Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows}
+                        </tbody>
+                    </table>
+                </div>
+                ${leaked.length > 0 ? `
+                    <div style="margin-top: 1rem; padding: 1rem; background: rgba(245,87,108,0.1); border-radius: 10px; border-left: 3px solid #f5576c;">
+                        <strong>⚠️ Warning:</strong> ${leaked.length} of your passwords have been leaked! Change them immediately!
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        // ============================================
+        // HELPER: Escape HTML
+        // ============================================
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ============================================
+        // UPDATE STATISTICS
+        // ============================================
+        function updateStats() {
+            elements.totalChecks.textContent = state.totalChecks;
+            elements.leakedFound.textContent = state.leakedFound;
+            elements.safeFound.textContent = state.safeFound;
+            
+            const rate = state.totalChecks > 0 
+                ? Math.round((state.leakedFound / state.totalChecks) * 100) 
+                : 0;
+            elements.leakRate.textContent = rate + '%';
+        }
+
+        // ============================================
+        // PASSWORD GENERATOR
+        // ============================================
+        elements.pwLength.addEventListener('input', function() {
+            elements.pwLengthDisplay.textContent = this.value;
+        });
+
+        elements.generateBtn.addEventListener('click', function() {
+            const length = parseInt(elements.pwLength.value);
+            const password = generatePassword(length);
+            elements.newPassword.textContent = password;
+            elements.generatedPassword.style.display = 'flex';
+        });
+
+        elements.copyBtn.addEventListener('click', async function() {
+            const password = elements.newPassword.textContent;
+            try {
+                await navigator.clipboard.writeText(password);
+                this.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    this.textContent = '📋 Copy';
+                }, 2000);
+            } catch (err) {
+                const textarea = document.createElement('textarea');
+                textarea.value = password;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                this.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    this.textContent = '📋 Copy';
+                }, 2000);
+            }
+        });
+
+        function generatePassword(length) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
+            let password = '';
+            for (let i = 0; i < length; i++) {
+                password += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return password;
+        }
+
+        // ============================================
+        // KEYBOARD SHORTCUTS
+        // ============================================
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                elements.checkBtn.click();
+            }
+        });
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        console.log('🔐 Password Leak Checker loaded successfully!');
+        console.log('🛡️ Your password is NEVER sent over the internet');
+        console.log('📊 Powered by Have I Been Pwned API');
+
+        // Check if browser supports crypto.subtle
+        if (!window.crypto || !window.crypto.subtle) {
+            console.warn('⚠️ Your browser does not support Web Crypto API. Please use a modern browser.');
+            document.getElementById('resultContainer').style.display = 'block';
+            document.getElementById('resultContent').innerHTML = `
+                <div class="result-error" style="padding: 1rem; border-radius: 10px;">
+                    <span style="font-size: 2rem;">⚠️</span>
+                    <p style="margin-top: 0.5rem;">Your browser doesn't support the required security features. Please use Chrome, Firefox, Edge, or Safari.</p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
